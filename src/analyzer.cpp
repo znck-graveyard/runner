@@ -17,6 +17,6 @@ void Analyzer::dump(struct rusage &usage, string filename) {
   fout << "MAJOR_FAULTS=" << usage.ru_majflt << endl;
   fout << "INPUT_COUNT=" << usage.ru_inblock << endl;
   fout << "OUTPUT_COUNT=" << usage.ru_oublock << endl;
-  fout << "VOLUNTRY_CONTEXT_SWITCH=" << usage.ru_nvcsw << endl;
-  fout << "INVOLUNTRY_CONTEXT_SWITCH=" << usage.ru_nivcsw << endl;
+  fout << "VOLUNTARY_CONTEXT_SWITCH=" << usage.ru_nvcsw << endl;
+  fout << "INVOLUNTARY_CONTEXT_SWITCH=" << usage.ru_nivcsw << endl;
 }

@@ -8,7 +8,7 @@ static void exit(int errno, string errmsg) {
   ofstream ferr("errors", ofstream::out | ofstream::app);
   ferr << "E"<< errno << " " << errmsg << endl;
 
-  throw errno;
+  // throw errno;
 }
 
 static void set_environment_limits(Limits limits) {
@@ -68,7 +68,7 @@ static void check_user() {
 
   uid_t UID = getuid();
   gid_t GID = getgid();
-  
+
   if (0 != setresgid(GID, GID, GID) || 0 != setresuid(UID, UID, UID)) {
     exit(152, "Cannot change user or/and group of subprocess.");
   }

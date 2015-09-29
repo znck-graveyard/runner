@@ -1,5 +1,4 @@
 #include <iostream>
-
 #include <analyzer.h>
 #include <helpers.h>
 #include <limits.h>
