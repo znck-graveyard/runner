@@ -1,7 +1,7 @@
-# runner
+# Runner
 Binary/Executable file runner for judge.
 
-## Usage:
+### Usage:
 ```
 runner [options] a.out 
 ```
