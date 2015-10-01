@@ -63,11 +63,11 @@ int main(int argc, char *argv[]) {
   }
 
   if (!WIFEXITED(status)) {
-    die(1, "EXIT Program Exited Abnormally.");
+    die(WIFEXITED(status), "EXIT Program Exited Abnormally.");
   }
 
   if (0 != WEXITSTATUS(status)) {
-    die(1, "EXIT Non-zero Exit Code.");
+    die(WEXITSTATUS(status), "EXIT Non-zero Exit Code.");
   }
 
   return 0;

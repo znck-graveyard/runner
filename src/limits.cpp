@@ -7,4 +7,6 @@ Limits::Limits() {
   outputSize = 50 * 1024 * 1024; // 50MB
   files = 16; // Number of open files
   processes = 1; // Number of threads/subprocesses
+  uid = getuid();
+  gid = getgid();
 }

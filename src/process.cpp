@@ -1,14 +1,20 @@
 #include <process.h>
 #include <iostream>
 #include <fstream>
+#include <errno.h>
 
 using namespace std;
 
-static void exit(int errno, string errmsg) {
-  ofstream ferr("errors", ofstream::out | ofstream::app);
-  ferr << "E"<< errno << " " << errmsg << endl;
+static void rotate_log() {
+  ofstream ferr("runner.log");
+  ferr << "# Runner Log" << endl;
+}
 
-  // throw errno;
+static void exit(int error_number, string errmsg) {
+  ofstream ferr("runner.log", ofstream::out | ofstream::app);
+  ferr << "E"<< error_number << " " << errmsg << endl;
+
+  throw error_number;
 }
 
 static void set_environment_limits(Limits limits) {
@@ -61,16 +67,24 @@ static void set_redirected_files(string input, string output, string error) {
   }
 }
 
-static void check_user() {
-  if (0 == geteuid() || 0 == getegid()) {
-    exit(151, "Cannot run as root.");
+static void check_user(Limits limits) {
+  uid_t UID = limits.uid;
+  gid_t GID = limits.gid;
+
+  // TODO: Change current user to less privileged user.
+  int t = 0;
+  while(setuid(UID)) {
+    if (EAGAIN == errno) {
+      if (++t > 4) {
+        exit(154, "Failed to set user id.");
+      }
+    } else if (EINVAL == errno) exit(152, "User ID specified is not valid in this user namespace");
+    else if (EPERM == errno) exit(153, "User is not privileged.");
+    exit(154, "Failed to set user id.");
   }
 
-  uid_t UID = getuid();
-  gid_t GID = getgid();
-
-  if (0 != setresgid(GID, GID, GID) || 0 != setresuid(UID, UID, UID)) {
-    exit(152, "Cannot change user or/and group of subprocess.");
+  if (0 == geteuid() || 0 == getegid()) {
+    exit(151, "Cannot run as root.");
   }
 }
 
@@ -83,11 +97,12 @@ Process::Process(Limits limits, string input, string output, string error) {
 
 int Process::run(int argc, char *argv[]) {
   try {
+    rotate_log();
     set_environment_limits(limits);
     // set_redirected_files(input, output, error);
-    check_user();
-  } catch(int errno) {
-    return errno;
+    check_user(limits);
+  } catch(int error) {
+    return error;
   }
 
   for(int i = 3; i < limits.files; ++i) {
@@ -101,6 +116,46 @@ int Process::run(int argc, char *argv[]) {
   commands[argc] = NULL;
 
   execve(argv[0], commands, NULL);
+  switch (errno) {
+    case E2BIG  :
+      exit(200 + E2BIG , "The total number of bytes in the environment (envp) and argument list (argv) is too large."); break;
+    case EACCES :
+      exit(200 + EACCES, "Search permission is denied on a component of the path prefix of filename or the name of a script interpreter. or The file or a script interpreter is not a regular file. or Execute permission is denied for the file or a script or ELF interpreter. or The filesystem is mounted noexec."); break;
+    case EAGAIN :
+      exit(200 + EAGAIN, "Having changed its real UID using one of the set*uid() calls, the caller was—and is now still—above its RLIMIT_NPROC resource limit."); break;
+    case EFAULT :
+      exit(200 + EFAULT, "filename or one of the pointers in the vectors argv or envp points outside your accessible address space."); break;
+    case EINVAL :
+      exit(200 + EINVAL, "An ELF executable had more than one PT_INTERP segment (i.e., tried to name more than one interpreter)."); break;
+    case EIO    :
+      exit(200 + EIO   , "An I/O error occurred."); break;
+    case EISDIR :
+      exit(200 + EISDIR, "An ELF interpreter was a directory."); break;
+    case ELIBBAD :
+      exit(200 + ELIBBAD, "An ELF interpreter was not in a recognized format."); break;
+    case ELOOP  :
+      exit(200 + ELOOP , "Too many symbolic links were encountered in resolving filename or the name of a script or ELF interpreter."); break;
+    case EMFILE :
+      exit(200 + EMFILE, "The process has the maximum number of files open."); break;
+    case ENAMETOOLONG :
+      exit(200 + ENAMETOOLONG, "filename is too long."); break;
+    case ENFILE :
+      exit(200 + ENFILE, "The system limit on the total number of open files has been reached."); break;
+    case ENOENT :
+      exit(200 + ENOENT, "The file filename or a script or ELF interpreter does not exist, or a shared library needed for file or interpretercannot be found."); break;
+    case ENOEXEC :
+      exit(200 + ENOEXEC, "An executable is not in a recognized format, is for the wrong architecture, or has some other format error that means it cannot be executed."); break;
+    case ENOMEM :
+      exit(200 + ENOMEM, "Insufficient kernel memory was available."); break;
+    case ENOTDIR :
+      exit(200 + ENOTDIR, "A component of the path prefix of filename or a script or ELF interpreter is not a directory."); break;
+    case EPERM :
+      exit(200 + EPERM, "The filesystem is mounted nosuid, the user is not the superuser, and the file has the set-user-ID or set-group-IDbit set.or The process is being traced, the user is not the superuser and the file has the set-user-ID or set-group-ID bit set."); break;
+    case ETXTBSY :
+      exit(200 + ETXTBSY, "Executable was open for writing by one or more processes."); break;
+    default:
+      exit(250, "execve exited with unknown error code."); break;
+  }
 
-  exit(0);
+  exit(EXIT_FAILURE);
 }

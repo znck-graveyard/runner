@@ -1,10 +1,14 @@
 #include <helpers.h>
+#include <fstream>
 
 using namespace std;
 
 void die(int status_code, string message) {
-  // TODO: print message to a stream.
+  ofstream ferr("runner.log", ofstream::out | ofstream::app);
+  ferr << "W"<< status_code << " " << message << endl;
+
   cerr << message << endl;
+
   exit(status_code);
 }
 
@@ -17,7 +21,9 @@ static struct option options[] = {
   {"processes", 1, NULL, 0},    // 5
   {"help", 1, NULL, 0},         // 6
   {"analysis", 1, NULL, 0},     // 7
-  {NULL, 0, NULL, 0}            // 7+
+  {"user", 1, NULL, 0},         // 8
+  {"group", 1, NULL, 0},        // 9
+  {NULL, 0, NULL, 0}            // 9+
 };
 
 void help(bool err = false) {
@@ -32,6 +38,8 @@ void help(bool err = false) {
   "  --time=[num]                Set running time limit. (In seconds, Default: 2s)\n"
   "  --open-files=[num]          Set maximum open files limt. (Default: 16)\n"
   "  --processes=[num]           Set maximum subprocesses/threads count. (Default: 1)\n"
+  "  --user=[num]                Set user id. (Default: current user)\n"
+  "  --group=[num]               Set group id. (Default: current user's group)\n"
   "  --help                      Print help text.\n";
 
   if(err) {
@@ -78,6 +86,12 @@ int parse_args(int argc, char *argv[], Limits &limits, string &filename) {
             break;
           case 7:
             filename = string(optarg);
+            break;
+          case 8:
+            limits.uid = num(optarg);
+            break;
+          case 9:
+            limits.gid = num(optarg);
             break;
         }
         break;
